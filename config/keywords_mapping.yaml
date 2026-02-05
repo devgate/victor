@@ -1,0 +1,200 @@
+# Keyword to Stock Mapping Configuration
+# Maps news keywords to related stock codes
+
+stocks:
+  # Semiconductors
+  - stock_code: "005930"
+    stock_name: "Samsung Electronics"
+    industry: "semiconductor"
+    keywords:
+      - "Samsung Electronics"
+      - "Samsung"
+      - "semiconductor"
+      - "memory"
+      - "DRAM"
+      - "NAND"
+      - "foundry"
+      - "Galaxy"
+      - "smartphone"
+    weight: 1.0
+
+  - stock_code: "000660"
+    stock_name: "SK Hynix"
+    industry: "semiconductor"
+    keywords:
+      - "SK Hynix"
+      - "Hynix"
+      - "semiconductor"
+      - "memory"
+      - "HBM"
+      - "AI semiconductor"
+      - "high bandwidth memory"
+    weight: 1.0
+
+  # Internet/Platform
+  - stock_code: "035420"
+    stock_name: "NAVER"
+    industry: "internet"
+    keywords:
+      - "NAVER"
+      - "Naver"
+      - "search"
+      - "cloud"
+      - "LINE"
+      - "AI"
+      - "HyperCLOVA"
+      - "Clova"
+    weight: 1.0
+
+  - stock_code: "035720"
+    stock_name: "Kakao"
+    industry: "internet"
+    keywords:
+      - "Kakao"
+      - "KakaoTalk"
+      - "Kakao Bank"
+      - "Kakao Pay"
+      - "platform"
+    weight: 1.0
+
+  # Battery/EV
+  - stock_code: "373220"
+    stock_name: "LG Energy Solution"
+    industry: "battery"
+    keywords:
+      - "LG Energy Solution"
+      - "LG Energy"
+      - "battery"
+      - "secondary battery"
+      - "EV"
+      - "electric vehicle"
+      - "lithium"
+    weight: 1.0
+
+  - stock_code: "006400"
+    stock_name: "Samsung SDI"
+    industry: "battery"
+    keywords:
+      - "Samsung SDI"
+      - "SDI"
+      - "battery"
+      - "all-solid-state battery"
+      - "EV battery"
+    weight: 1.0
+
+  # Bio/Pharma
+  - stock_code: "207940"
+    stock_name: "Samsung Biologics"
+    industry: "bio"
+    keywords:
+      - "Samsung Biologics"
+      - "Samsung Bio"
+      - "bio"
+      - "CMO"
+      - "biosimilar"
+    weight: 1.0
+
+  - stock_code: "068270"
+    stock_name: "Celltrion"
+    industry: "bio"
+    keywords:
+      - "Celltrion"
+      - "biosimilar"
+      - "Remsima"
+      - "FDA"
+      - "clinical trial"
+    weight: 1.0
+
+  # Automotive
+  - stock_code: "005380"
+    stock_name: "Hyundai Motor"
+    industry: "automotive"
+    keywords:
+      - "Hyundai Motor"
+      - "Hyundai"
+      - "automobile"
+      - "EV"
+      - "IONIQ"
+      - "Genesis"
+    weight: 1.0
+
+  - stock_code: "000270"
+    stock_name: "Kia"
+    industry: "automotive"
+    keywords:
+      - "Kia"
+      - "Kia Motors"
+      - "EV6"
+      - "EV9"
+      - "automobile"
+    weight: 1.0
+
+# Industry Keywords (shared across stocks)
+industries:
+  semiconductor:
+    - "semiconductor"
+    - "AI chip"
+    - "GPU"
+    - "HBM"
+    - "foundry"
+    - "fab"
+    - "wafer"
+
+  battery:
+    - "secondary battery"
+    - "battery"
+    - "lithium"
+    - "EV"
+    - "electric vehicle"
+    - "cathode"
+    - "anode"
+    - "electrolyte"
+
+  bio:
+    - "bio"
+    - "new drug"
+    - "clinical trial"
+    - "FDA"
+    - "pharmaceutical"
+    - "biosimilar"
+
+  internet:
+    - "platform"
+    - "AI"
+    - "cloud"
+    - "digital"
+    - "metaverse"
+    - "fintech"
+
+  automotive:
+    - "automobile"
+    - "EV"
+    - "autonomous driving"
+    - "mobility"
+    - "SDV"
+
+# Sentiment Keywords
+sentiment_keywords:
+  positive:
+    - "strong earnings"
+    - "revenue growth"
+    - "order"
+    - "contract"
+    - "acquisition"
+    - "upgrade"
+    - "target price raise"
+    - "record high"
+    - "breakthrough"
+    - "expansion"
+
+  negative:
+    - "deficit"
+    - "loss"
+    - "downgrade"
+    - "sell"
+    - "recall"
+    - "lawsuit"
+    - "regulation"
+    - "decline"
+    - "bankruptcy"
+    - "investigation"

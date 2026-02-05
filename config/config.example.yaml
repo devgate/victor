@@ -1,0 +1,89 @@
+# Victor Trading System Configuration
+# Copy this file to config.yaml and fill in your values
+
+app:
+  name: "victor-trading"
+  env: "development"  # development, production
+  log_level: "INFO"
+
+# Korea Investment Securities API
+kis:
+  app_key: ${KIS_APP_KEY}
+  app_secret: ${KIS_APP_SECRET}
+  account_number: ${KIS_ACCOUNT_NUMBER}
+  hts_id: ${KIS_HTS_ID}
+  virtual: true  # true: paper trading, false: real trading
+
+# News Sources Configuration
+news:
+  sources:
+    - name: "newneek"
+      enabled: true
+      fetch_limit: 5
+    - name: "uppity"
+      enabled: true
+      fetch_limit: 5
+    - name: "maekyung"
+      enabled: true
+      fetch_limit: 10
+    - name: "bigkinds"
+      enabled: false
+      api_key: ${BIGKINDS_API_KEY}
+      fetch_limit: 20
+
+  cache:
+    enabled: true
+    ttl_hours: 24
+    directory: "./data/news_cache"
+
+# Analysis Settings
+analysis:
+  keyword_extraction:
+    method: "combined"  # konlpy, keybert, combined
+    min_keyword_length: 2
+    top_n: 15
+
+  sentiment:
+    model: "snunlp/KR-FinBert-SC"
+    threshold:
+      positive: 0.3
+      negative: -0.2
+
+# Trading Strategy Settings
+trading:
+  strategy:
+    # Position sizing
+    max_single_trade_ratio: 0.1  # Max 10% per trade
+    split_count: 3               # Split into 3 orders
+
+    # Risk management
+    stop_loss_rate: -0.05        # Stop loss at -5%
+    take_profit_rate: 0.10       # Take profit at +10%
+    max_holding_ratio: 0.2       # Max 20% per stock
+    daily_loss_limit: -0.03      # Max daily loss -3%
+    max_trades_per_day: 10       # Max 10 trades per day
+
+    # Signal thresholds
+    buy_threshold: 0.3           # Buy when sentiment > 0.3
+    sell_threshold: -0.2         # Sell when sentiment < -0.2
+    min_mentions: 3              # Minimum news mentions
+
+# Slack Notification
+slack:
+  webhook_url: ${SLACK_WEBHOOK_URL}
+  enabled: true
+
+# Scheduler Settings
+scheduler:
+  timezone: "Asia/Seoul"
+  jobs:
+    morning_analysis: "08:30"
+    intraday_analysis: "10:00,13:00"
+    daily_report: "16:00"
+    risk_reset: "08:00"
+
+# Data Paths
+data:
+  news_cache: "./data/news_cache"
+  trade_history: "./data/trade_history"
+  logs: "./data/logs"

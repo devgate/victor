@@ -1,0 +1,42 @@
+{
+  "mappings": {
+    "035420": {
+      "stock_code": "035420",
+      "stock_name": "NAVER",
+      "industry": "internet",
+      "matched_keywords": [
+        "volatility",
+        "가격의 극심한",
+        "가격이 하락하자",
+        "기록적 하락",
+        "은값 13",
+        "한국시간"
+      ],
+      "trend_score": 0.0,
+      "sentiment_avg": 0.0,
+      "confidence": 0.3,
+      "source": "dynamic"
+    }
+  },
+  "keyword_to_stocks": {
+    "volatility": [
+      "035420"
+    ],
+    "은값 13": [
+      "035420"
+    ],
+    "가격이 하락하자": [
+      "035420"
+    ],
+    "한국시간": [
+      "035420"
+    ],
+    "기록적 하락": [
+      "035420"
+    ],
+    "가격의 극심한": [
+      "035420"
+    ]
+  },
+  "updated_at": "2026-02-06T05:31:35.450381"
+}
