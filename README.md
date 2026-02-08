@@ -4,7 +4,7 @@
 
 ## 주요 기능
 
-- **뉴스 수집**: 뉴닉, 어피티, 매경쏙, 빅카인즈에서 뉴스 자동 수집
+- **뉴스 수집**: 뉴닉, 어피티, 매일경제, 한국경제, 이데일리, 연합뉴스에서 뉴스 자동 수집
 - **동적 키워드 추적**: 이슈가 되는 키워드를 자동으로 발견하고 추적
 - **트렌드 감지**: 급상승 키워드 및 신규 이슈 실시간 탐지
 - **키워드 추출**: KoNLPy, KeyBERT를 활용한 핵심 키워드 분석
@@ -12,7 +12,7 @@
 - **동적 종목 매핑**: 트렌딩 키워드 → 관련 종목 자동 연결
 - **자동 매매**: 한국투자증권 API 연동 자동 매수/매도
 - **리스크 관리**: 손절/익절, 분할 매매, 일일 손실 한도
-- **알림**: Slack을 통한 실시간 거래 알림 및 일일 리포트
+- **알림**: Slack을 통한 실시간 거래 알림, 계좌 현황 및 일일 리포트
 
 ## 시스템 요구사항
 
@@ -74,9 +74,6 @@ KIS_ACCOUNT_NUMBER=your_account_number  # 예: 12345678-01
 KIS_HTS_ID=your_hts_id
 KIS_VIRTUAL=false                       # 환경변수로 모의투자 설정 가능
 
-# 빅카인즈 API (선택)
-BIGKINDS_API_KEY=your_bigkinds_api_key
-
 # Slack Webhook
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx/yyy/zzz
 
@@ -117,17 +114,22 @@ news:
   sources:
     - name: "newneek"
       enabled: true
-      fetch_limit: 300    # 수집할 기사 수
+      fetch_limit: 10    # 수집할 기사 수
     - name: "uppity"
       enabled: true
-      fetch_limit: 30
+      fetch_limit: 10
     - name: "maekyung"
       enabled: true
-      fetch_limit: 30
-    - name: "bigkinds"
-      enabled: false    # API 키 필요
-      api_key: ${BIGKINDS_API_KEY}
-      fetch_limit: 30
+      fetch_limit: 20
+    - name: "hankyung"    # 한국경제
+      enabled: true
+      fetch_limit: 20
+    - name: "edaily"      # 이데일리
+      enabled: true
+      fetch_limit: 15
+    - name: "yonhap"      # 연합뉴스
+      enabled: true
+      fetch_limit: 15
   cache:
     enabled: true
     ttl_hours: 24
@@ -210,12 +212,14 @@ stocks:
 
 ## 실행
 
+`run.sh` 스크립트를 사용하여 실행합니다. (Python 캐시 자동 정리)
+
 ### 기본 실행 (데몬 모드)
 
 스케줄러가 설정된 시간에 자동으로 분석 및 매매를 실행합니다.
 
 ```bash
-python main.py --mode daemon
+./run.sh --mode daemon
 ```
 
 ### 1회 실행 (테스트)
@@ -223,7 +227,15 @@ python main.py --mode daemon
 뉴스 수집 → 분석 → 매매를 1회 실행합니다.
 
 ```bash
-python main.py --mode once
+./run.sh --mode once
+```
+
+### 캐시 무시하고 실행
+
+이미 분석한 뉴스도 다시 분석합니다.
+
+```bash
+./run.sh --mode once --no-cache
 ```
 
 ### 상태 확인
@@ -231,7 +243,7 @@ python main.py --mode once
 시스템 설정 및 계좌 상태를 확인합니다.
 
 ```bash
-python main.py --mode status
+./run.sh --mode status
 ```
 
 ### 실거래 모드
@@ -239,13 +251,21 @@ python main.py --mode status
 **주의: 실제 돈이 사용됩니다!**
 
 ```bash
-python main.py --mode daemon --live
+./run.sh --mode daemon --live
+```
+
+### 뉴스 수집만 테스트
+
+KIS API 호출 없이 뉴스 수집만 테스트합니다.
+
+```bash
+./run.sh --mode once --no-cache --skip-kis
 ```
 
 ### 로그 레벨 설정
 
 ```bash
-python main.py --mode daemon --log-level DEBUG
+./run.sh --mode daemon --log-level DEBUG
 ```
 
 ## 실행 모드
@@ -260,6 +280,25 @@ python main.py --mode daemon --log-level DEBUG
 |------|------|
 | `--live` | 실거래 모드 활성화 |
 | `--log-level` | 로그 레벨 (DEBUG/INFO/WARNING/ERROR) |
+| `--no-cache` | 뉴스 캐시 무시 (모든 기사 다시 분석) |
+| `--skip-kis` | KIS API 호출 건너뛰기 (뉴스 수집 테스트용) |
+
+## Slack 알림
+
+모든 리포트 마지막에 계좌 현황이 포함됩니다:
+
+- **분석 사이클 결과**: 수집된 기사 수, 생성된 시그널, 거래 결과 + 계좌 현황
+- **일일 리포트**: 키워드 분석, 감성 분석, 거래 통계 + 계좌 현황
+- **거래 알림**: 매수/매도 실행 결과
+- **오류 알림**: 시스템 오류 발생 시
+
+### 계좌 현황 포함 정보
+
+- 예수금 (현금)
+- 주식 평가금액
+- 총 평가금액
+- 총 손익금액 및 수익률
+- 보유 종목 목록 (종목명, 수량, 수익률)
 
 ## 스케줄 (평일)
 
@@ -318,6 +357,7 @@ python main.py --mode daemon --log-level DEBUG
 
 ```
 victor/
+├── run.sh                  # 실행 스크립트 (권장)
 ├── main.py                 # 메인 실행 파일
 ├── config/
 │   ├── config.yaml         # 설정 파일
@@ -328,8 +368,10 @@ victor/
 │   │   ├── aggregator.py   # 뉴스 통합 수집
 │   │   ├── newneek.py      # 뉴닉 크롤러
 │   │   ├── uppity.py       # 어피티 크롤러
-│   │   ├── maekyung.py     # 매경쏙 크롤러
-│   │   └── bigkinds.py     # 빅카인즈 API
+│   │   ├── maekyung.py     # 매일경제 크롤러
+│   │   ├── hankyung.py     # 한국경제 크롤러
+│   │   ├── edaily.py       # 이데일리 크롤러
+│   │   └── yonhap.py       # 연합뉴스 크롤러
 │   ├── analysis/           # 분석 모듈
 │   │   ├── analyzer.py     # 통합 분석기
 │   │   ├── trend_tracker.py    # 동적 트렌드 추적

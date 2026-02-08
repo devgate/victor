@@ -5,6 +5,7 @@ Sends trading alerts and reports to Slack.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from src.trading.kis_client import AccountBalance
 from src.trading.order import ExecutionResult
 from src.trading.strategy import TradeAction, TradeDecision
 from src.utils.exceptions import SlackNotificationError
@@ -180,12 +181,17 @@ class SlackNotifier:
             blocks=blocks,
         )
 
-    def send_daily_report(self, report: dict) -> bool:
+    def send_daily_report(
+        self,
+        report: dict,
+        account_balance: Optional[AccountBalance] = None,
+    ) -> bool:
         """
         Send daily analysis report.
 
         Args:
             report: Report dictionary from NewsAnalyzer
+            account_balance: Optional account balance to include
 
         Returns:
             True if sent successfully
@@ -245,6 +251,10 @@ class SlackNotifier:
                     )
                 }
             })
+
+        # Add account balance section if provided
+        if account_balance:
+            blocks.extend(self._build_account_blocks(account_balance))
 
         blocks.extend([
             {"type": "divider"},
@@ -353,4 +363,187 @@ class SlackNotifier:
                     }
                 }
             ],
+        )
+
+    def _build_account_blocks(self, balance: AccountBalance) -> List[Dict]:
+        """
+        Build Slack blocks for account status.
+
+        Args:
+            balance: AccountBalance object
+
+        Returns:
+            List of Slack block dicts
+        """
+        profit_sign = "+" if balance.total_profit_loss >= 0 else ""
+        profit_emoji = ":chart_with_upwards_trend:" if balance.total_profit_loss >= 0 else ":chart_with_downwards_trend:"
+
+        blocks = [
+            {"type": "divider"},
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":bank: 계좌 현황",
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*예수금:*\n{balance.cash:,.0f} 원"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*주식평가:*\n{balance.stock_eval_amount:,.0f} 원"
+                    },
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*총 평가금액:*\n{balance.total_eval_amount:,.0f} 원"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*총 손익:*\n{profit_emoji} {profit_sign}{balance.total_profit_loss:,.0f} 원 ({profit_sign}{balance.total_profit_rate:.2f}%)"
+                    },
+                ]
+            },
+        ]
+
+        # Add holdings summary
+        if balance.holdings:
+            holdings_text = []
+            for h in balance.holdings[:5]:  # Show top 5
+                h_sign = "+" if h.profit_rate >= 0 else ""
+                h_emoji = ":small_blue_diamond:" if h.profit_rate >= 0 else ":small_orange_diamond:"
+                holdings_text.append(
+                    f"{h_emoji} {h.stock_name}: {h.quantity:,}주 | {h_sign}{h.profit_rate:.1f}%"
+                )
+
+            if len(balance.holdings) > 5:
+                holdings_text.append(f"_... 외 {len(balance.holdings) - 5}개 종목_")
+
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*보유 종목 ({len(balance.holdings)}개):*\n" + "\n".join(holdings_text)
+                }
+            })
+        else:
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*보유 종목:* 없음"
+                }
+            })
+
+        return blocks
+
+    def send_cycle_result(
+        self,
+        summary: dict,
+        error: Optional[str] = None,
+        account_balance: Optional[AccountBalance] = None,
+    ) -> bool:
+        """
+        Send analysis cycle result notification.
+
+        Args:
+            summary: Cycle summary dictionary
+            error: Optional error message if cycle failed
+            account_balance: Optional account balance to include
+
+        Returns:
+            True if sent successfully
+        """
+        if error:
+            # Failed cycle
+            emoji = ":x:"
+            status = "Failed"
+            color = "#ff6b6b"
+        elif summary.get("trades_executed", 0) > 0:
+            # Successful with trades
+            emoji = ":white_check_mark:"
+            status = "Completed"
+            color = "#36a64f"
+        else:
+            # Successful but no trades
+            emoji = ":information_source:"
+            status = "Completed (No trades)"
+            color = "#4a90d9"
+
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"{emoji} Analysis Cycle {status}",
+                }
+            },
+        ]
+
+        if error:
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":warning: *Error:*\n```{error}```"
+                }
+            })
+        else:
+            # Add summary stats
+            blocks.append({
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Articles Collected:*\n{summary.get('articles_collected', 0)}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Signals Generated:*\n{summary.get('signals_generated', 0)}"
+                    },
+                ]
+            })
+            blocks.append({
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Decisions Made:*\n{summary.get('decisions_made', 0)}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Trades:*\n:white_check_mark: {summary.get('trades_executed', 0)} | :x: {summary.get('trades_failed', 0)}"
+                    },
+                ]
+            })
+
+        # Add account balance section if provided
+        if account_balance:
+            blocks.extend(self._build_account_blocks(account_balance))
+
+        blocks.extend([
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"Victor Trading | {summary.get('timestamp', datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))}"
+                    }
+                ]
+            }
+        ])
+
+        return self.send_message(
+            text=f"Analysis Cycle {status}",
+            blocks=blocks,
         )

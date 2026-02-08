@@ -11,10 +11,12 @@ from typing import Dict, List, Optional, Set
 import aiohttp
 
 from src.news.base import NewsArticle, NewsCollector
-from src.news.bigkinds import BigKindsCollector
+from src.news.edaily import EdailyCollector
+from src.news.hankyung import HankyungCollector
 from src.news.maekyung import MaekyungCollector
 from src.news.newneek import NewneekCollector
 from src.news.uppity import UppityCollector
+from src.news.yonhap import YonhapCollector
 from src.utils.exceptions import NewsCollectionError
 from src.utils.logger import get_logger, news_log
 
@@ -172,12 +174,12 @@ class NewsAggregator:
                     self._collectors.append(UppityCollector(session))
                 elif name == "maekyung":
                     self._collectors.append(MaekyungCollector(session))
-                elif name == "bigkinds":
-                    api_key = source.get("api_key")
-                    if api_key:
-                        self._collectors.append(BigKindsCollector(api_key, session))
-                    else:
-                        logger.warning("BigKinds API key not configured, skipping")
+                elif name == "hankyung":
+                    self._collectors.append(HankyungCollector(session))
+                elif name == "edaily":
+                    self._collectors.append(EdailyCollector(session))
+                elif name == "yonhap":
+                    self._collectors.append(YonhapCollector(session))
                 else:
                     logger.warning(f"Unknown news source: {name}")
             except Exception as e:

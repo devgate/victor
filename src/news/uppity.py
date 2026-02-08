@@ -222,11 +222,25 @@ class UppityCollector(NewsCollector):
 
             soup = BeautifulSoup(html, "lxml")
 
-            # Extract title
-            title_elem = soup.select_one("h1") or soup.select_one(".newsletter-title")
-            if not title_elem:
-                return None
-            title = title_elem.get_text(strip=True)
+            # Extract title - prefer og:title as h1 is often generic "뉴스"
+            og_title = soup.select_one("meta[property='og:title']")
+            if og_title and og_title.get("content"):
+                title = og_title.get("content")
+            else:
+                title_elem = soup.select_one("h1") or soup.select_one(".newsletter-title")
+                if not title_elem:
+                    return None
+                title = title_elem.get_text(strip=True)
+
+            # Skip generic titles
+            if title in ["뉴스", "어피티"]:
+                # Try to get date-based title from URL or page
+                date_elem = soup.select_one("time") or soup.select_one(".date")
+                if date_elem:
+                    date_text = date_elem.get_text(strip=True)
+                    title = f"어피티 뉴스 {date_text}"
+                else:
+                    title = f"어피티 경제뉴스 ({url.split('/')[-2]})"
 
             # Extract content
             content_elem = (

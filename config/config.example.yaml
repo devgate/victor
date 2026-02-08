@@ -19,17 +19,22 @@ news:
   sources:
     - name: "newneek"
       enabled: true
-      fetch_limit: 5
+      fetch_limit: 10
     - name: "uppity"
       enabled: true
-      fetch_limit: 5
+      fetch_limit: 10
     - name: "maekyung"
       enabled: true
-      fetch_limit: 10
-    - name: "bigkinds"
-      enabled: false
-      api_key: ${BIGKINDS_API_KEY}
       fetch_limit: 20
+    - name: "hankyung"
+      enabled: true
+      fetch_limit: 20
+    - name: "edaily"
+      enabled: true
+      fetch_limit: 15
+    - name: "yonhap"
+      enabled: true
+      fetch_limit: 15
 
   cache:
     enabled: true

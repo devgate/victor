@@ -185,6 +185,11 @@ class VictorTrading:
         Returns:
             List of TradeDecision objects
         """
+        # Skip KIS API call if no signals (avoids rate limiting)
+        if not signals:
+            logger.info("No signals to process, skipping KIS API call")
+            return []
+
         try:
             # Get current holdings and balance
             balance = self.kis_client.get_balance()
@@ -253,27 +258,54 @@ class VictorTrading:
         logger.info("Starting analysis cycle")
         logger.info("=" * 50)
 
-        # 1. Collect news
-        articles = await self.collect_news()
-
-        # 2. Analyze news
-        signals = self.analyze_news(articles)
-
-        # 3. Make trading decisions
-        decisions = self.make_trading_decisions(signals)
-
-        # 4. Execute trades
-        results = self.execute_trades(decisions)
-
-        # 5. Generate summary
+        error_message = None
         summary = {
             "timestamp": datetime.now().isoformat(),
-            "articles_collected": len(articles),
-            "signals_generated": len(signals),
-            "decisions_made": len(decisions),
-            "trades_executed": len([r for r in results if r.success]),
-            "trades_failed": len([r for r in results if not r.success]),
+            "articles_collected": 0,
+            "signals_generated": 0,
+            "decisions_made": 0,
+            "trades_executed": 0,
+            "trades_failed": 0,
         }
+
+        try:
+            # 1. Collect news
+            articles = await self.collect_news()
+            summary["articles_collected"] = len(articles)
+
+            # 2. Analyze news
+            signals = self.analyze_news(articles)
+            summary["signals_generated"] = len(signals)
+
+            # 3. Make trading decisions
+            decisions = self.make_trading_decisions(signals)
+            summary["decisions_made"] = len(decisions)
+
+            # 4. Execute trades
+            results = self.execute_trades(decisions)
+            summary["trades_executed"] = len([r for r in results if r.success])
+            summary["trades_failed"] = len([r for r in results if not r.success])
+
+        except Exception as e:
+            error_message = str(e)
+            logger.error(f"Cycle failed with error: {error_message}")
+
+        # 5. Get account balance for report
+        account_balance = None
+        try:
+            account_balance = self.kis_client.get_balance()
+        except Exception as e:
+            logger.warning(f"Failed to get account balance for report: {e}")
+
+        # 6. Send Slack notification with account info
+        try:
+            self.slack.send_cycle_result(
+                summary,
+                error=error_message,
+                account_balance=account_balance,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send Slack notification: {e}")
 
         logger.info(f"Cycle complete: {summary}")
         return summary
@@ -294,8 +326,15 @@ class VictorTrading:
             # Add trading stats
             report["daily_stats"] = self.risk_manager.get_daily_stats()
 
-            # Send to Slack
-            self.slack.send_daily_report(report)
+            # Get account balance
+            account_balance = None
+            try:
+                account_balance = self.kis_client.get_balance()
+            except Exception as e:
+                logger.warning(f"Failed to get account balance: {e}")
+
+            # Send to Slack with account info
+            self.slack.send_daily_report(report, account_balance=account_balance)
             logger.info("Daily report sent")
 
         except Exception as e:
@@ -395,6 +434,16 @@ def main():
         default="INFO",
         help="Logging level",
     )
+    parser.add_argument(
+        "--skip-kis",
+        action="store_true",
+        help="Skip KIS API calls (for testing news collection only)",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Ignore news cache (re-analyze all articles)",
+    )
 
     args = parser.parse_args()
 
@@ -407,6 +456,15 @@ def main():
         logger.warning("=" * 50)
         logger.warning("LIVE TRADING MODE - Real money will be used!")
         logger.warning("=" * 50)
+
+    # Clear cache if requested
+    if args.no_cache:
+        import glob
+        cache_files = glob.glob("./data/news_cache/seen_urls_*.json")
+        for f in cache_files:
+            import os
+            os.remove(f)
+        logger.info("News cache cleared (--no-cache)")
 
     # Initialize system
     victor = VictorTrading(dry_run=dry_run)
@@ -430,21 +488,81 @@ def main():
         for key, value in result.items():
             print(f"  {key}: {value}")
 
+        # Display account information (unless --skip-kis)
+        if not args.skip_kis:
+            try:
+                print("\n" + "=" * 60)
+                print("📊 계좌 현황 (Account Summary)")
+                print("=" * 60)
+                balance = victor.kis_client.get_balance()
+
+                # Account balance summary
+                print(f"\n💰 잔고 정보:")
+                print(f"   예수금 (Cash):          {balance.cash:>15,.0f} 원")
+                print(f"   주식평가금액:           {balance.stock_eval_amount:>15,.0f} 원")
+                print(f"   총 평가금액:            {balance.total_eval_amount:>15,.0f} 원")
+
+                # Profit/Loss
+                profit_sign = "+" if balance.total_profit_loss >= 0 else ""
+                profit_color = "" if balance.total_profit_loss >= 0 else ""
+                print(f"\n📈 손익 현황:")
+                print(f"   총 손익금액:            {profit_sign}{balance.total_profit_loss:>14,.0f} 원")
+                print(f"   총 수익률:              {profit_sign}{balance.total_profit_rate:>14.2f} %")
+
+                # Holdings
+                if balance.holdings:
+                    print(f"\n📋 보유 종목 ({len(balance.holdings)}개):")
+                    print("-" * 60)
+                    print(f"{'종목명':<16} {'수량':>8} {'평균단가':>12} {'현재가':>12} {'수익률':>8}")
+                    print("-" * 60)
+
+                    for h in balance.holdings:
+                        profit_sign = "+" if h.profit_rate >= 0 else ""
+                        print(
+                            f"{h.stock_name:<16} "
+                            f"{h.quantity:>8,} "
+                            f"{h.avg_buy_price:>12,.0f} "
+                            f"{h.current_price:>12,.0f} "
+                            f"{profit_sign}{h.profit_rate:>7.2f}%"
+                        )
+
+                    print("-" * 60)
+
+                    # Top gainers and losers
+                    sorted_by_profit = sorted(balance.holdings, key=lambda x: x.profit_rate, reverse=True)
+                    if len(sorted_by_profit) > 0:
+                        best = sorted_by_profit[0]
+                        worst = sorted_by_profit[-1]
+                        if best.profit_rate > 0:
+                            print(f"   🏆 최고 수익: {best.stock_name} (+{best.profit_rate:.2f}%)")
+                        if worst.profit_rate < 0:
+                            print(f"   ⚠️  최저 수익: {worst.stock_name} ({worst.profit_rate:.2f}%)")
+                else:
+                    print(f"\n📋 보유 종목: 없음")
+
+                print("=" * 60)
+
+            except Exception as e:
+                print(f"\n⚠️  계좌 정보 조회 실패: {e}")
+
     elif args.mode == "status":
         print("\nVictor Trading System Status")
         print("=" * 40)
         print(f"Mode: {'DRY RUN' if dry_run else 'LIVE'}")
         print(f"Environment: {victor.settings.env}")
 
-        # Check KIS connection
-        try:
-            balance = victor.kis_client.get_balance()
-            print(f"\nAccount Balance:")
-            print(f"  Cash: {balance.cash:,.0f} KRW")
-            print(f"  Total: {balance.total_eval_amount:,.0f} KRW")
-            print(f"  Holdings: {len(balance.holdings)} stocks")
-        except Exception as e:
-            print(f"\nKIS API: Connection failed - {e}")
+        # Check KIS connection (skip if --skip-kis)
+        if args.skip_kis:
+            print(f"\nKIS API: Skipped (--skip-kis)")
+        else:
+            try:
+                balance = victor.kis_client.get_balance()
+                print(f"\nAccount Balance:")
+                print(f"  Cash: {balance.cash:,.0f} KRW")
+                print(f"  Total: {balance.total_eval_amount:,.0f} KRW")
+                print(f"  Holdings: {len(balance.holdings)} stocks")
+            except Exception as e:
+                print(f"\nKIS API: Connection failed - {e}")
 
         # Scheduler status
         print(f"\nScheduler Jobs:")

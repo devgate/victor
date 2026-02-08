@@ -17,8 +17,8 @@ from src.utils.logger import get_logger, news_log
 logger = get_logger(__name__)
 
 # Retry settings for rate limiting
-MAX_RETRIES = 3
-RETRY_DELAY_BASE = 2  # seconds
+MAX_RETRIES = 4
+RETRY_DELAY_BASE = 5  # seconds (longer base delay)
 
 
 class NewneekCollector(NewsCollector):
@@ -50,7 +50,12 @@ class NewneekCollector(NewsCollector):
                 headers={
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                  "Chrome/120.0.0.0 Safari/537.36"
+                                  "Chrome/122.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Cache-Control": "no-cache",
+                    "Referer": "https://newneek.co/",
                 }
             )
         return self._session
@@ -113,6 +118,9 @@ class NewneekCollector(NewsCollector):
         session = await self._get_session()
 
         try:
+            # Small initial delay to be respectful
+            await asyncio.sleep(random.uniform(1, 2))
+
             # Fetch archive page with retry
             html = await self._fetch_with_retry(session, self.ARCHIVE_URL)
             if not html:
@@ -126,9 +134,9 @@ class NewneekCollector(NewsCollector):
             # Fetch individual articles with delay to avoid rate limiting
             for i, url in enumerate(article_links):
                 try:
-                    # Add small delay between requests
+                    # Add delay between requests to avoid rate limiting
                     if i > 0:
-                        await asyncio.sleep(0.5 + random.uniform(0, 0.5))
+                        await asyncio.sleep(1.5 + random.uniform(0, 1.0))
 
                     article = await self._fetch_article(session, url)
                     if article and self.is_valid_article(article):

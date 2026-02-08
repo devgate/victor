@@ -123,12 +123,16 @@ class KISClient:
         try:
             from pykis import PyKis
 
+            # pykis v2.x requires credentials for both real and virtual trading
+            # The library uses the appropriate credentials based on the operation
             self._kis = PyKis(
                 id=self.hts_id,
                 account=self.account_number,
                 appkey=self.app_key,
                 secretkey=self.app_secret,
-                virtual=self.virtual,
+                virtual_appkey=self.app_key if self.virtual else None,
+                virtual_secretkey=self.app_secret if self.virtual else None,
+                keep_token=True,  # 토큰 캐시 활성화
             )
             self._initialized = True
             logger.info(
@@ -168,22 +172,22 @@ class KISClient:
             holdings = []
             for stock in balance.stocks:
                 holding = StockHolding(
-                    stock_code=stock.code,
+                    stock_code=stock.symbol,
                     stock_name=stock.name,
-                    quantity=stock.quantity,
-                    avg_buy_price=float(stock.avg_buy_price),
+                    quantity=int(stock.quantity),
+                    avg_buy_price=float(stock.purchase_price),
                     current_price=float(stock.current_price),
-                    eval_amount=float(stock.eval_amount),
-                    profit_loss=float(stock.profit_loss),
+                    eval_amount=float(stock.amount),
+                    profit_loss=float(stock.profit),
                     profit_rate=float(stock.profit_rate),
                 )
                 holdings.append(holding)
 
             return AccountBalance(
-                cash=float(balance.withdrawable_cash),
-                total_eval_amount=float(balance.total_eval_amount),
-                total_profit_loss=float(balance.total_profit_loss),
-                total_profit_rate=float(balance.total_profit_rate),
+                cash=float(balance.withdrawable),
+                total_eval_amount=float(balance.amount),
+                total_profit_loss=float(balance.profit),
+                total_profit_rate=float(balance.profit_rate),
                 holdings=holdings,
             )
         except Exception as e:
@@ -238,12 +242,12 @@ class KISClient:
                 stock_name=quote.name,
                 current_price=float(quote.price),
                 change=float(quote.change),
-                change_rate=float(quote.change_rate),
+                change_rate=float(quote.rate),
                 volume=int(quote.volume),
                 open_price=float(quote.open),
                 high_price=float(quote.high),
                 low_price=float(quote.low),
-                prev_close=float(quote.prev_close),
+                prev_close=float(quote.prev_price),
             )
         except Exception as e:
             raise KISAPIError(
@@ -285,11 +289,11 @@ class KISClient:
 
             result = OrderResult(
                 success=True,
-                order_id=str(order.order_id),
+                order_id=str(order.number),
                 stock_code=stock_code,
                 order_type="buy",
                 quantity=quantity,
-                price=float(order.price) if order.price else None,
+                price=None,  # Market order price determined at execution
                 message="Market buy order placed",
                 executed_at=datetime.now(),
             )
@@ -338,7 +342,7 @@ class KISClient:
 
             result = OrderResult(
                 success=True,
-                order_id=str(order.order_id),
+                order_id=str(order.number),
                 stock_code=stock_code,
                 order_type="buy",
                 quantity=quantity,
@@ -379,11 +383,11 @@ class KISClient:
 
             result = OrderResult(
                 success=True,
-                order_id=str(order.order_id),
+                order_id=str(order.number),
                 stock_code=stock_code,
                 order_type="sell",
                 quantity=quantity,
-                price=float(order.price) if order.price else None,
+                price=None,  # Market order price determined at execution
                 message="Market sell order placed",
                 executed_at=datetime.now(),
             )
@@ -426,7 +430,7 @@ class KISClient:
 
             result = OrderResult(
                 success=True,
-                order_id=str(order.order_id),
+                order_id=str(order.number),
                 stock_code=stock_code,
                 order_type="sell",
                 quantity=quantity,
@@ -454,18 +458,29 @@ class KISClient:
         """
         Cancel an existing order.
 
+        Note: pykis v2.x requires cancelling via the KisOrder object
+        returned from buy/sell, not by order ID lookup. This method
+        searches pending orders to find and cancel by order number.
+
         Args:
-            order_id: Order ID to cancel
+            order_id: Order number to cancel
 
         Returns:
             True if cancellation was successful.
         """
         try:
-            order = self.kis.order(order_id)
-            result = order.cancel()
+            account = self.kis.account()
+            pending = account.pending_orders()
 
-            trade_log(f"ORDER CANCELLED: {order_id}")
-            return result
+            for order in pending:
+                if str(order.number) == order_id:
+                    order.cancel()
+                    trade_log(f"ORDER CANCELLED: {order_id}")
+                    return True
+
+            raise OrderExecutionError(
+                f"Order {order_id} not found in pending orders",
+            )
 
         except Exception as e:
             raise OrderExecutionError(
