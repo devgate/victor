@@ -44,9 +44,15 @@ news:
 # Analysis Settings
 analysis:
   keyword_extraction:
-    method: "combined"  # konlpy, keybert, combined
+    method: "combined"            # konlpy, keybert, combined
     min_keyword_length: 2
-    top_n: 15
+    top_n: 10                     # 15 → 10 (노이즈 감소)
+    keybert_threshold: 0.5        # KeyBERT score 최소 임계값
+    use_financial_filter: true    # 금융 도메인 필터 적용
+
+  dynamic_mapping:
+    enabled: true
+    proximity_check: true         # 키워드-종목 같은 문장 체크
 
   sentiment:
     model: "snunlp/KR-FinBert-SC"
@@ -54,24 +60,24 @@ analysis:
       positive: 0.3
       negative: -0.2
 
-# Trading Strategy Settings
+# Trading Strategy Settings (소규모 계좌 최적화: 50만원 기준)
 trading:
   strategy:
     # Position sizing
-    max_single_trade_ratio: 0.1  # Max 10% per trade
-    split_count: 3               # Split into 3 orders
+    max_single_trade_ratio: 0.3  # Max 30% per trade (소액 집중 투자)
+    split_count: 1               # 분할 없이 한번에 매수
 
     # Risk management
-    stop_loss_rate: -0.05        # Stop loss at -5%
-    take_profit_rate: 0.10       # Take profit at +10%
-    max_holding_ratio: 0.2       # Max 20% per stock
+    stop_loss_rate: -0.03        # Stop loss at -3% (소액 손실 빡빡하게 관리)
+    take_profit_rate: 0.07       # Take profit at +7% (수익 조기 확정)
+    max_holding_ratio: 0.5       # Max 50% per stock (2~3종목 집중)
     daily_loss_limit: -0.03      # Max daily loss -3%
-    max_trades_per_day: 10       # Max 10 trades per day
+    max_trades_per_day: 5        # Max 5 trades per day (잦은 거래 방지)
 
     # Signal thresholds
     buy_threshold: 0.3           # Buy when sentiment > 0.3
     sell_threshold: -0.2         # Sell when sentiment < -0.2
-    min_mentions: 3              # Minimum news mentions
+    min_mentions: 2              # Minimum news mentions (진입 기회 확대)
 
 # Slack Notification
 slack:

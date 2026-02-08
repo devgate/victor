@@ -14,5 +14,10 @@ find . -name "*.pyc" -delete 2>/dev/null
 # Run with no bytecode writing
 export PYTHONDONTWRITEBYTECODE=1
 
+# Activate virtual environment if available
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # Execute main.py with all arguments passed to this script
-python3.11 main.py "$@"
+python main.py "$@"

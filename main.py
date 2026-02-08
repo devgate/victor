@@ -18,6 +18,7 @@ from typing import Dict, List, Optional
 
 from config.settings import Settings, load_keywords_mapping
 from src.analysis.analyzer import NewsAnalyzer, TradingSignal
+from src.backtest.archiver import ArticleArchiver
 from src.news.aggregator import NewsAggregator
 from src.news.base import NewsArticle
 from src.notification.slack import SlackNotifier
@@ -94,6 +95,9 @@ class VictorTrading:
             enabled=slack_config.get("enabled", True),
         )
 
+        # Article archiver (for backtesting)
+        self.archiver = ArticleArchiver()
+
         # Scheduler
         scheduler_config = config.get("scheduler", {})
         self.scheduler = TradingScheduler(
@@ -124,6 +128,11 @@ class VictorTrading:
         try:
             articles = await self.news_aggregator.collect_all()
             logger.info(f"Collected {len(articles)} new articles")
+
+            # Archive articles for future backtesting
+            if articles:
+                self.archiver.save_articles(articles)
+
             return articles
         except Exception as e:
             logger.error(f"News collection failed: {e}")
@@ -412,6 +421,56 @@ def setup_signal_handlers(victor: VictorTrading, loop: asyncio.AbstractEventLoop
     signal.signal(signal.SIGTERM, signal_handler)
 
 
+def _run_backtest(args) -> None:
+    """Run backtesting mode."""
+    from datetime import date as date_type
+    from src.backtest.engine import BacktestEngine
+
+    settings = Settings()
+
+    # Parse dates
+    if not args.start or not args.end:
+        print("Error: --start and --end are required for backtest mode")
+        print("Usage: python main.py --mode backtest --start 2026-02-01 --end 2026-02-07")
+        sys.exit(1)
+
+    try:
+        start_date = date_type.fromisoformat(args.start)
+        end_date = date_type.fromisoformat(args.end)
+    except ValueError:
+        print("Error: Invalid date format. Use YYYY-MM-DD")
+        sys.exit(1)
+
+    if start_date > end_date:
+        print("Error: --start must be before --end")
+        sys.exit(1)
+
+    # Check available archived articles
+    from src.backtest.archiver import ArticleArchiver
+    archiver = ArticleArchiver()
+    available = archiver.get_available_dates()
+
+    if not available:
+        print("\nNo archived articles found.")
+        print("Run the system in daemon or once mode first to collect and archive articles.")
+        print("  python main.py --mode once")
+        sys.exit(1)
+
+    in_range = [d for d in available if start_date <= d <= end_date]
+    print(f"\nArchived articles available: {len(in_range)} days in range")
+    if in_range:
+        print(f"  First: {in_range[0]}, Last: {in_range[-1]}")
+
+    # Run backtest
+    engine = BacktestEngine(
+        config=settings.config,
+        initial_cash=args.cash,
+    )
+
+    report = engine.run(start_date, end_date)
+    report.print_report()
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -419,9 +478,9 @@ def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["daemon", "once", "status"],
+        choices=["daemon", "once", "status", "backtest"],
         default="daemon",
-        help="Run mode: daemon (continuous), once (single cycle), status (show status)",
+        help="Run mode: daemon (continuous), once (single cycle), status, backtest",
     )
     parser.add_argument(
         "--live",
@@ -444,6 +503,27 @@ def main():
         action="store_true",
         help="Ignore news cache (re-analyze all articles)",
     )
+    parser.add_argument(
+        "--start",
+        type=str,
+        help="Backtest start date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--end",
+        type=str,
+        help="Backtest end date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--cash",
+        type=float,
+        default=500_000,
+        help="Initial cash for backtesting (default: 500000)",
+    )
+    parser.add_argument(
+        "--reset-mappings",
+        action="store_true",
+        help="Reset dynamic keyword-stock mappings cache",
+    )
 
     args = parser.parse_args()
 
@@ -465,6 +545,20 @@ def main():
             import os
             os.remove(f)
         logger.info("News cache cleared (--no-cache)")
+
+    # Reset dynamic mappings if requested
+    if args.reset_mappings:
+        import json
+        mapping_file = "./data/stock_cache/dynamic_mappings.json"
+        reset_data = {"mappings": {}, "keyword_to_stocks": {}, "updated_at": datetime.now().isoformat()}
+        with open(mapping_file, "w", encoding="utf-8") as f:
+            json.dump(reset_data, f, ensure_ascii=False, indent=2)
+        logger.info("Dynamic mappings reset (--reset-mappings)")
+
+    # Handle backtest mode separately (no KIS connection needed)
+    if args.mode == "backtest":
+        _run_backtest(args)
+        return
 
     # Initialize system
     victor = VictorTrading(dry_run=dry_run)

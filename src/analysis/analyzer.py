@@ -113,7 +113,9 @@ class NewsAnalyzer:
         self.keyword_extractor = keyword_extractor or KeywordExtractor(
             method=keyword_config.get("method", "combined"),
             min_keyword_length=keyword_config.get("min_keyword_length", 2),
-            top_n=keyword_config.get("top_n", 15),
+            top_n=keyword_config.get("top_n", 10),
+            keybert_threshold=keyword_config.get("keybert_threshold", 0.5),
+            use_financial_filter=keyword_config.get("use_financial_filter", True),
         )
 
         self.sentiment_analyzer = sentiment_analyzer or SentimentAnalyzer(
@@ -121,7 +123,9 @@ class NewsAnalyzer:
             use_model=True,
         )
 
-        self.stock_mapper = stock_mapper or StockMapper()
+        self.stock_mapper = stock_mapper or StockMapper(
+            mapping_file=config.get("mapping_file", "config/keywords_mapping.yaml"),
+        )
 
         # Initialize trend tracking
         self.enable_trends = enable_trends

@@ -23,12 +23,19 @@ class StockMapping:
     weight: float = 1.0
 
     def matches_keyword(self, keyword: str) -> bool:
-        """Check if keyword matches this stock."""
+        """Check if keyword matches this stock with minimum overlap."""
         keyword_lower = keyword.lower()
-        return any(
-            kw.lower() == keyword_lower or keyword_lower in kw.lower()
-            for kw in self.keywords
-        )
+        for kw in self.keywords:
+            kw_lower = kw.lower()
+            if kw_lower == keyword_lower:
+                return True
+            # Partial match only with sufficient overlap
+            shorter = min(len(keyword_lower), len(kw_lower))
+            longer = max(len(keyword_lower), len(kw_lower))
+            if shorter >= 3 and (keyword_lower in kw_lower or kw_lower in keyword_lower):
+                if shorter / longer >= 0.6:
+                    return True
+        return False
 
 
 @dataclass
@@ -128,17 +135,17 @@ class StockMapper:
         """Load default stock mappings."""
         # Minimal default mappings for major Korean stocks
         defaults = [
-            ("005930", "Samsung Electronics", "semiconductor", [
-                "Samsung", "Samsung Electronics", "Galaxy", "semiconductor"
+            ("005930", "삼성전자", "반도체", [
+                "삼성전자", "삼성", "갤럭시", "반도체", "Samsung"
             ]),
-            ("000660", "SK Hynix", "semiconductor", [
-                "SK Hynix", "Hynix", "HBM", "memory"
+            ("000660", "SK하이닉스", "반도체", [
+                "SK하이닉스", "하이닉스", "HBM", "메모리반도체"
             ]),
-            ("035420", "NAVER", "internet", [
-                "NAVER", "Naver", "search", "LINE"
+            ("035420", "NAVER", "인터넷", [
+                "네이버", "NAVER", "클로바", "LINE"
             ]),
-            ("035720", "Kakao", "internet", [
-                "Kakao", "KakaoTalk"
+            ("035720", "카카오", "인터넷", [
+                "카카오", "카카오톡", "Kakao"
             ]),
         ]
 
@@ -202,15 +209,22 @@ class StockMapper:
                     current = stock_matches[stock.stock_code]
                     stock_matches[stock.stock_code] = (current[0], current[1] + 1)
 
-            # Partial match (keyword contained in indexed keyword)
+            # Partial match with minimum overlap ratio
             else:
                 for indexed_kw, stocks in self._keyword_index.items():
+                    shorter = min(len(keyword_lower), len(indexed_kw))
+                    longer = max(len(keyword_lower), len(indexed_kw))
+                    # Skip if either is too short for partial matching
+                    if shorter < 3:
+                        continue
+                    # Check containment with minimum ratio
                     if keyword_lower in indexed_kw or indexed_kw in keyword_lower:
-                        for stock in stocks:
-                            if stock.stock_code not in stock_matches:
-                                stock_matches[stock.stock_code] = (stock, 0)
-                            current = stock_matches[stock.stock_code]
-                            stock_matches[stock.stock_code] = (current[0], current[1] + 1)
+                        if shorter / longer >= 0.6:
+                            for stock in stocks:
+                                if stock.stock_code not in stock_matches:
+                                    stock_matches[stock.stock_code] = (stock, 0)
+                                current = stock_matches[stock.stock_code]
+                                stock_matches[stock.stock_code] = (current[0], current[1] + 1)
 
         # Sort by match count (descending)
         results = list(stock_matches.values())

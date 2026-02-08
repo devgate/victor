@@ -106,12 +106,13 @@ class SlackNotifier:
             status_emoji = ":x:"
             status_text = "Failed"
 
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"{emoji} {action_text} Order {status_text}",
+                    "text": f"[Victor Trading] {emoji} {action_text} Order {status_text} | {now}",
                 }
             },
             {
@@ -198,12 +199,13 @@ class SlackNotifier:
         """
         sentiment = report.get("sentiment_distribution", {})
 
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":newspaper: Daily Analysis Report",
+                    "text": f"[Victor Trading] :newspaper: Daily Analysis Report | {now}",
                 }
             },
             {"type": "divider"},
@@ -291,12 +293,13 @@ class SlackNotifier:
         Returns:
             True if sent successfully
         """
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":rotating_light: System Alert",
+                    "text": f"[Victor Trading] :rotating_light: System Alert | {now}",
                 }
             },
             {
@@ -335,15 +338,22 @@ class SlackNotifier:
 
     def send_startup_message(self) -> bool:
         """Send system startup notification."""
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self.send_message(
-            text=":rocket: Victor Trading System Started",
+            text=f"[Victor Trading] :rocket: System Started | {now}",
             blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"[Victor Trading] :rocket: System Started | {now}",
+                    }
+                },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ":rocket: *Victor Trading System Started*\n"
-                                f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        "text": "*Victor Trading System Started*"
                     }
                 }
             ],
@@ -351,15 +361,22 @@ class SlackNotifier:
 
     def send_shutdown_message(self) -> bool:
         """Send system shutdown notification."""
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self.send_message(
-            text=":stop_sign: Victor Trading System Stopped",
+            text=f"[Victor Trading] :stop_sign: System Stopped | {now}",
             blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"[Victor Trading] :stop_sign: System Stopped | {now}",
+                    }
+                },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ":stop_sign: *Victor Trading System Stopped*\n"
-                                f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        "text": "*Victor Trading System Stopped*"
                     }
                 }
             ],
@@ -384,7 +401,7 @@ class SlackNotifier:
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":bank: 계좌 현황",
+                    "text": "[Victor Trading] :bank: 계좌 현황",
                 }
             },
             {
@@ -484,7 +501,7 @@ class SlackNotifier:
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"{emoji} Analysis Cycle {status}",
+                    "text": f"[Victor Trading] {emoji} Analysis Cycle {status} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 }
             },
         ]

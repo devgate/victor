@@ -1,200 +1,361 @@
 # Keyword to Stock Mapping Configuration
 # Maps news keywords to related stock codes
+# 한국어 뉴스 기반이므로 한국어 키워드 사용
 
 stocks:
-  # Semiconductors
+  # === 반도체 ===
   - stock_code: "005930"
-    stock_name: "Samsung Electronics"
-    industry: "semiconductor"
+    stock_name: "삼성전자"
+    industry: "반도체"
     keywords:
-      - "Samsung Electronics"
-      - "Samsung"
-      - "semiconductor"
-      - "memory"
+      - "삼성전자"
+      - "삼성"
+      - "갤럭시"
+      - "반도체"
+      - "메모리"
       - "DRAM"
       - "NAND"
-      - "foundry"
+      - "파운드리"
+      - "스마트폰"
+      - "Samsung"
       - "Galaxy"
-      - "smartphone"
     weight: 1.0
 
   - stock_code: "000660"
-    stock_name: "SK Hynix"
-    industry: "semiconductor"
+    stock_name: "SK하이닉스"
+    industry: "반도체"
     keywords:
-      - "SK Hynix"
-      - "Hynix"
-      - "semiconductor"
-      - "memory"
+      - "SK하이닉스"
+      - "하이닉스"
       - "HBM"
-      - "AI semiconductor"
-      - "high bandwidth memory"
+      - "고대역폭메모리"
+      - "AI반도체"
+      - "AI 반도체"
+      - "메모리반도체"
     weight: 1.0
 
-  # Internet/Platform
+  # === 인터넷/플랫폼 ===
   - stock_code: "035420"
     stock_name: "NAVER"
-    industry: "internet"
+    industry: "인터넷"
     keywords:
+      - "네이버"
       - "NAVER"
-      - "Naver"
-      - "search"
-      - "cloud"
+      - "하이퍼클로바"
+      - "클로바"
+      - "라인"
       - "LINE"
-      - "AI"
-      - "HyperCLOVA"
-      - "Clova"
+      - "네이버클라우드"
     weight: 1.0
 
   - stock_code: "035720"
-    stock_name: "Kakao"
-    industry: "internet"
+    stock_name: "카카오"
+    industry: "인터넷"
     keywords:
+      - "카카오"
+      - "카카오톡"
+      - "카카오뱅크"
+      - "카카오페이"
       - "Kakao"
-      - "KakaoTalk"
-      - "Kakao Bank"
-      - "Kakao Pay"
-      - "platform"
     weight: 1.0
 
-  # Battery/EV
+  # === 2차전지/배터리 ===
   - stock_code: "373220"
-    stock_name: "LG Energy Solution"
-    industry: "battery"
+    stock_name: "LG에너지솔루션"
+    industry: "2차전지"
     keywords:
-      - "LG Energy Solution"
-      - "LG Energy"
-      - "battery"
-      - "secondary battery"
-      - "EV"
-      - "electric vehicle"
-      - "lithium"
+      - "LG에너지솔루션"
+      - "LG에너지"
+      - "LGES"
+      - "배터리"
+      - "이차전지"
+      - "2차전지"
+      - "리튬"
     weight: 1.0
 
   - stock_code: "006400"
-    stock_name: "Samsung SDI"
-    industry: "battery"
+    stock_name: "삼성SDI"
+    industry: "2차전지"
     keywords:
-      - "Samsung SDI"
+      - "삼성SDI"
       - "SDI"
-      - "battery"
-      - "all-solid-state battery"
-      - "EV battery"
+      - "전고체배터리"
+      - "전고체"
     weight: 1.0
 
-  # Bio/Pharma
-  - stock_code: "207940"
-    stock_name: "Samsung Biologics"
-    industry: "bio"
+  - stock_code: "051910"
+    stock_name: "LG화학"
+    industry: "2차전지"
     keywords:
-      - "Samsung Biologics"
-      - "Samsung Bio"
-      - "bio"
+      - "LG화학"
+      - "양극재"
+      - "분리막"
+    weight: 1.0
+
+  # === 바이오/제약 ===
+  - stock_code: "207940"
+    stock_name: "삼성바이오로직스"
+    industry: "바이오"
+    keywords:
+      - "삼성바이오"
+      - "삼성바이오로직스"
+      - "바이오로직스"
       - "CMO"
-      - "biosimilar"
+      - "CDMO"
+      - "바이오의약품"
     weight: 1.0
 
   - stock_code: "068270"
-    stock_name: "Celltrion"
-    industry: "bio"
+    stock_name: "셀트리온"
+    industry: "바이오"
     keywords:
-      - "Celltrion"
-      - "biosimilar"
-      - "Remsima"
-      - "FDA"
-      - "clinical trial"
+      - "셀트리온"
+      - "바이오시밀러"
+      - "램시마"
+      - "짐펜트라"
     weight: 1.0
 
-  # Automotive
+  # === 자동차 ===
   - stock_code: "005380"
-    stock_name: "Hyundai Motor"
-    industry: "automotive"
+    stock_name: "현대차"
+    industry: "자동차"
     keywords:
-      - "Hyundai Motor"
-      - "Hyundai"
-      - "automobile"
-      - "EV"
+      - "현대차"
+      - "현대자동차"
+      - "현대모터"
+      - "아이오닉"
+      - "제네시스"
       - "IONIQ"
-      - "Genesis"
     weight: 1.0
 
   - stock_code: "000270"
-    stock_name: "Kia"
-    industry: "automotive"
+    stock_name: "기아"
+    industry: "자동차"
     keywords:
-      - "Kia"
-      - "Kia Motors"
+      - "기아"
+      - "기아차"
+      - "기아자동차"
       - "EV6"
       - "EV9"
-      - "automobile"
     weight: 1.0
 
-# Industry Keywords (shared across stocks)
+  # === 철강/소재 ===
+  - stock_code: "005490"
+    stock_name: "POSCO홀딩스"
+    industry: "철강"
+    keywords:
+      - "포스코"
+      - "POSCO"
+      - "포스코홀딩스"
+      - "철강"
+    weight: 1.0
+
+  # === 방산 ===
+  - stock_code: "012450"
+    stock_name: "한화에어로스페이스"
+    industry: "방산"
+    keywords:
+      - "한화에어로스페이스"
+      - "한화에어로"
+      - "K방산"
+      - "K-방산"
+      - "방산수출"
+    weight: 1.0
+
+  - stock_code: "047810"
+    stock_name: "한국항공우주"
+    industry: "방산"
+    keywords:
+      - "한국항공우주"
+      - "KAI"
+      - "FA-50"
+      - "KF-21"
+    weight: 1.0
+
+  # === 조선 ===
+  - stock_code: "009540"
+    stock_name: "HD한국조선해양"
+    industry: "조선"
+    keywords:
+      - "HD한국조선"
+      - "한국조선해양"
+      - "HD현대"
+      - "조선"
+      - "LNG선"
+      - "수주"
+    weight: 1.0
+
+  # === 통신 ===
+  - stock_code: "017670"
+    stock_name: "SK텔레콤"
+    industry: "통신"
+    keywords:
+      - "SK텔레콤"
+      - "SKT"
+      - "에이닷"
+      - "AI컴퍼니"
+    weight: 1.0
+
+  # === 금융 ===
+  - stock_code: "105560"
+    stock_name: "KB금융"
+    industry: "금융"
+    keywords:
+      - "KB금융"
+      - "KB"
+      - "국민은행"
+      - "KB국민"
+    weight: 1.0
+
+  - stock_code: "055550"
+    stock_name: "신한지주"
+    industry: "금융"
+    keywords:
+      - "신한지주"
+      - "신한은행"
+      - "신한금융"
+    weight: 1.0
+
+  # === AI/소프트웨어 ===
+  - stock_code: "403870"
+    stock_name: "HPSP"
+    industry: "반도체장비"
+    keywords:
+      - "HPSP"
+      - "고압수소어닐링"
+    weight: 0.8
+
+  - stock_code: "058470"
+    stock_name: "리노공업"
+    industry: "반도체장비"
+    keywords:
+      - "리노공업"
+      - "리노"
+      - "프로브카드"
+    weight: 0.8
+
+# Industry Keywords (shared across stocks in same industry)
 industries:
-  semiconductor:
-    - "semiconductor"
-    - "AI chip"
+  반도체:
+    - "반도체"
+    - "AI칩"
     - "GPU"
     - "HBM"
-    - "foundry"
-    - "fab"
-    - "wafer"
+    - "파운드리"
+    - "웨이퍼"
+    - "EUV"
+    - "첨단패키징"
+    - "TSV"
 
-  battery:
-    - "secondary battery"
-    - "battery"
-    - "lithium"
+  2차전지:
+    - "이차전지"
+    - "2차전지"
+    - "배터리"
+    - "리튬"
+    - "전기차"
     - "EV"
-    - "electric vehicle"
-    - "cathode"
-    - "anode"
-    - "electrolyte"
+    - "양극재"
+    - "음극재"
+    - "전해질"
+    - "분리막"
 
-  bio:
-    - "bio"
-    - "new drug"
-    - "clinical trial"
+  바이오:
+    - "바이오"
+    - "신약"
+    - "임상시험"
+    - "임상"
     - "FDA"
-    - "pharmaceutical"
-    - "biosimilar"
+    - "제약"
+    - "바이오시밀러"
+    - "CDMO"
+    - "항체"
 
-  internet:
-    - "platform"
+  인터넷:
+    - "플랫폼"
     - "AI"
-    - "cloud"
-    - "digital"
-    - "metaverse"
-    - "fintech"
+    - "인공지능"
+    - "클라우드"
+    - "디지털"
+    - "메타버스"
+    - "핀테크"
+    - "LLM"
+    - "생성형AI"
 
-  automotive:
-    - "automobile"
-    - "EV"
-    - "autonomous driving"
-    - "mobility"
+  자동차:
+    - "자동차"
+    - "전기차"
+    - "자율주행"
+    - "모빌리티"
     - "SDV"
+    - "하이브리드"
+    - "수소차"
 
-# Sentiment Keywords
+  방산:
+    - "방산"
+    - "방위산업"
+    - "무기수출"
+    - "K방산"
+    - "국방"
+
+  조선:
+    - "조선"
+    - "LNG"
+    - "LNG선"
+    - "수주"
+    - "선박"
+    - "해양플랜트"
+
+  철강:
+    - "철강"
+    - "포항"
+    - "철광석"
+    - "스테인리스"
+
+  금융:
+    - "금리"
+    - "은행"
+    - "대출"
+    - "예금"
+    - "기준금리"
+    - "한국은행"
+
+# Sentiment Keywords (한국어)
 sentiment_keywords:
   positive:
-    - "strong earnings"
-    - "revenue growth"
-    - "order"
-    - "contract"
-    - "acquisition"
-    - "upgrade"
-    - "target price raise"
-    - "record high"
-    - "breakthrough"
-    - "expansion"
+    - "호실적"
+    - "실적개선"
+    - "매출성장"
+    - "수주"
+    - "계약"
+    - "인수"
+    - "상향"
+    - "목표가상향"
+    - "신고가"
+    - "사상최대"
+    - "흑자전환"
+    - "증액"
+    - "확대"
+    - "성장"
+    - "호재"
+    - "급등"
+    - "돌파"
+    - "반등"
 
   negative:
-    - "deficit"
-    - "loss"
-    - "downgrade"
-    - "sell"
-    - "recall"
-    - "lawsuit"
-    - "regulation"
-    - "decline"
-    - "bankruptcy"
-    - "investigation"
+    - "적자"
+    - "손실"
+    - "하향"
+    - "매도"
+    - "리콜"
+    - "소송"
+    - "규제"
+    - "하락"
+    - "파산"
+    - "조사"
+    - "실적부진"
+    - "감익"
+    - "감소"
+    - "악재"
+    - "급락"
+    - "폭락"
+    - "하한가"

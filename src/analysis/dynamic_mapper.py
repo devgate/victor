@@ -121,6 +121,9 @@ class DynamicStockMapper:
                 }
 
                 logger.debug(f"Loaded {len(self._dynamic_mappings)} cached mappings")
+
+                # Apply confidence decay on load
+                self._decay_confidence()
             except Exception as e:
                 logger.warning(f"Failed to load cache: {e}")
 
@@ -142,6 +145,30 @@ class DynamicStockMapper:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.warning(f"Failed to save cache: {e}")
+
+    def _decay_confidence(self) -> None:
+        """Lower confidence of associations not reinforced recently."""
+        stale_codes = []
+        for stock_code, match in self._dynamic_mappings.items():
+            # Decay confidence by 10%
+            match.confidence *= 0.9
+            # Mark for removal if too low
+            if match.confidence < 0.1:
+                stale_codes.append(stock_code)
+
+        for code in stale_codes:
+            removed = self._dynamic_mappings.pop(code, None)
+            if removed:
+                for kw in removed.matched_keywords:
+                    kw_lower = kw.lower()
+                    if kw_lower in self._keyword_to_stocks:
+                        self._keyword_to_stocks[kw_lower].discard(code)
+                        if not self._keyword_to_stocks[kw_lower]:
+                            del self._keyword_to_stocks[kw_lower]
+
+        if stale_codes:
+            logger.info(f"Removed {len(stale_codes)} stale dynamic mappings")
+            self._save_cache()
 
     def _build_name_index(self) -> None:
         """Build stock name to code index from static mapper."""
@@ -293,6 +320,18 @@ class DynamicStockMapper:
         """
         keyword_lower = keyword.lower()
 
+        # Reinforce existing association instead of re-adding
+        if stock_code in self._dynamic_mappings:
+            existing = self._dynamic_mappings[stock_code]
+            if keyword in existing.matched_keywords:
+                existing.confidence = min(existing.confidence + 0.05, 0.9)
+                return
+
+        # Cap keywords per stock to prevent pollution
+        if stock_code in self._dynamic_mappings:
+            if len(self._dynamic_mappings[stock_code].matched_keywords) >= 30:
+                return
+
         # Update dynamic mappings
         if stock_code not in self._dynamic_mappings:
             self._dynamic_mappings[stock_code] = DynamicStockMatch(
@@ -310,14 +349,31 @@ class DynamicStockMapper:
             self._keyword_to_stocks[keyword_lower] = set()
         self._keyword_to_stocks[keyword_lower].add(stock_code)
 
-        # Update name index
+        # Only update name index for actual stock names, not keywords
         self._name_to_code[stock_name.lower()] = stock_code
-        self._name_to_code[keyword_lower] = stock_code
 
         analysis_log(f"Learned association: '{keyword}' -> {stock_name} ({stock_code})")
 
         # Save cache
         self._save_cache()
+
+    def _is_proximate(self, text: str, keyword: str, stock_name: str) -> bool:
+        """
+        Check if keyword appears near stock name in text.
+
+        Args:
+            text: Full article text
+            keyword: Keyword to check
+            stock_name: Stock name to check proximity with
+
+        Returns:
+            True if keyword and stock name appear in the same sentence
+        """
+        sentences = re.split(r'[.。!?\n]', text)
+        for sentence in sentences:
+            if stock_name.lower() in sentence.lower() and keyword in sentence:
+                return True
+        return False
 
     def update_from_articles(
         self,
@@ -327,6 +383,9 @@ class DynamicStockMapper:
         """
         Update dynamic mappings by analyzing articles.
 
+        Only learns associations where the keyword appears in the same
+        sentence as the stock name and passes financial domain filtering.
+
         Args:
             articles_text: List of article texts
             keywords_per_article: Keywords extracted from each article
@@ -334,26 +393,54 @@ class DynamicStockMapper:
         if not self.discovery_enabled:
             return
 
+        from src.analysis.keyword_extractor import KOREAN_STOP_WORDS, FINANCIAL_DOMAIN_TERMS
+
         for text, keywords in zip(articles_text, keywords_per_article):
             # Extract stock mentions from text
             mentions = self.extract_stock_mentions(text)
+            if not mentions:
+                continue
 
-            # Associate keywords with mentioned stocks
+            # Associate keywords with mentioned stocks (with quality gates)
             for stock_name, stock_code in mentions:
                 stock = self.static_mapper.get_stock(stock_code)
                 if not stock:
                     continue
 
                 for keyword in keywords:
-                    # Only learn if keyword is somewhat unique
-                    if len(keyword) >= 2 and keyword.lower() not in ["the", "a", "an", "is", "are"]:
-                        self.learn_association(
-                            keyword=keyword,
-                            stock_code=stock_code,
-                            stock_name=stock.stock_name,
-                            industry=stock.industry,
-                            confidence=0.3,  # Lower confidence for auto-learned
+                    # Gate 1: Minimum length
+                    if len(keyword) < 2:
+                        continue
+
+                    # Gate 2: Not a stop word
+                    if keyword in KOREAN_STOP_WORDS:
+                        continue
+
+                    # Gate 3: Proximity check - keyword must be in same sentence
+                    if not self._is_proximate(text, keyword, stock_name):
+                        continue
+
+                    # Gate 4: Financial relevance check
+                    is_financial = keyword in FINANCIAL_DOMAIN_TERMS
+                    if not is_financial:
+                        # Also check partial match with financial terms
+                        keyword_lower = keyword.lower()
+                        is_financial = any(
+                            term in keyword_lower or keyword_lower in term
+                            for term in FINANCIAL_DOMAIN_TERMS
+                            if len(term) >= 2 and len(keyword_lower) >= 2
                         )
+                    # Allow 4+ char compound nouns even if not in financial terms
+                    if not is_financial and len(keyword) < 4:
+                        continue
+
+                    self.learn_association(
+                        keyword=keyword,
+                        stock_code=stock_code,
+                        stock_name=stock.stock_name,
+                        industry=stock.industry,
+                        confidence=0.4,
+                    )
 
     def get_stocks_for_keywords(
         self,
